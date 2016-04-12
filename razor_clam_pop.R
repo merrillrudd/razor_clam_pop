@@ -145,4 +145,3 @@ for(y in 2:nyears){
 ## adjust parameter values to get the equilibrium population growth rate to 1
 plot(pmat[,"lamda"], type="l")
 abline(h=1, col="red", lwd=2)
-
