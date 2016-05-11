@@ -46,7 +46,7 @@ shinyServer(function(input, output) {
     
   }
   
-  get_abundances <- function(input, tmat, nyears, stochastic=FALSE, sd=0.6){
+  get_abundances <- function(input, tmat, nyears, stochastic=FALSE, sd=0.6, seed=123){
     
     ## initial population size by stage in numbers
     initial <- c("L"=input$fec*input$survE, "S"=input$fec*input$survE*input$survL, "J"=input$fec*input$survE*input$survL*input$survS, "A"=input$fec*input$survE*input$survL*input$survJ)
@@ -59,6 +59,7 @@ shinyServer(function(input, output) {
     ## start population at initial values in first year
     pmat[1,] <- c(initial, NA)
     
+    set.seed(seed)
     dev <- rnorm(nyears,0,sd)
     
     ## loop over years, starting with year 2
@@ -92,11 +93,25 @@ shinyServer(function(input, output) {
     abline(h=1, col="red", lwd=3)
   })
   
-  output$Stochastic <- renderPlot({
+  output$StochasticGrowthRate <- renderPlot({
     tmat <- get_transitions(input=input)
-    pmat <- get_abundances(input=input, tmat=tmat, nyears=1000, stochastic=TRUE, sd=input$sd)
-    plot(pmat[701:1000,"lamda"], type="l", lty=2, xlab="Year", ylab="Population growth rate", ylim=c(0,2))
+    pmat <- get_abundances(input=input, tmat=tmat, nyears=400, stochastic=TRUE, sd=input$sd)
+    plot(pmat[301:400,"lamda"], type="l", lty=2, xlab="Year", ylab="Population growth rate", ylim=c(0,3))
+    for(i in 2:input$nsim){
+      pmat <- get_abundances(input=input, tmat=tmat, nyears=400, stochastic=TRUE, sd=input$sd, seed=i)
+      lines(pmat[301:400,"lamda"], type="l", lty=2, col=i)
+    }
     abline(h=1, col="red", lwd=2)
+  })
+  
+  output$StochasticAbundance <- renderPlot({
+    tmat <- get_transitions(input=input)
+    pmat <- get_abundances(input=input, tmat=tmat, nyears=400, stochastic=TRUE, sd=input$sd)
+    plot(pmat[301:400,"A"], type="l", lty=2, xlab="Year", ylab="Adult abundance")
+#     for(i in 2:input$nsim){
+#       pmat <- get_abundances(input=input, tmat=tmat, nyears=400, stochastic=TRUE, sd=input$sd, seed=i)
+#       lines(pmat[301:400,"A"], type="l", lty=2, col=i)
+#     }
   })
   
 

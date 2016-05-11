@@ -26,14 +26,14 @@ shinyUI(fluidPage(
          h4("Transition Probabilities"),
          p(em("Each stage must sum to 1")),
          p(strong("Larva")),
-         fluidRow(column(4, numericInput("LL", h5("Stay"), value=0)),
-                  column(4, offset=1, numericInput("LS", h5("Transition"), value=1))),
+         fluidRow(column(5, numericInput("LL", h5("Stay"), value=0)),
+                  column(5, offset=1, numericInput("LS", h5("Transition"), value=1))),
          p(strong("Set")),
-         fluidRow(column(4, numericInput("SS", h5("Stay"), value=0)),
-                  column(4, offset=1, numericInput("SJ", h5("Transition"), value=1))),
+         fluidRow(column(5, numericInput("SS", h5("Stay"), value=0)),
+                  column(5, offset=1, numericInput("SJ", h5("Transition"), value=1))),
          p(strong("Juvenile")),
-         fluidRow(column(4, numericInput("JJ", h5("Stay"), value=0.3)),
-                  column(4, offset=1, numericInput("JA", h5("Transition"), value=0.7))),
+         fluidRow(column(5, numericInput("JJ", h5("Stay"), value=0.3)),
+                  column(5, offset=1, numericInput("JA", h5("Transition"), value=0.7))),
          p(strong("Adults")),
          numericInput("AL", h5("Proportion of adults reproducing annually"), value=1),
          h4("Other Factors"),
@@ -47,9 +47,9 @@ shinyUI(fluidPage(
         sidebarLayout(
           sidebarPanel(
             sliderInput("sd", "Variability:", value=0.6, min=0, max=1, step=0.05),
-            numericInput("nsim", "Number of simulations",value=100, min=1, max=1000, step=1)
+            numericInput("nsim", "Number of simulations",value=10, min=1, max=1000, step=1)
           ),
-          mainPanel(plotOutput("Stochastic"))
+          mainPanel(plotOutput("StochasticGrowthRate"), plotOutput("StochasticAbundance"))
   ))))
 
 
