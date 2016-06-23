@@ -8,112 +8,101 @@
 library(shiny)
 
 shinyServer(function(input, output) {
-  
-  get_transitions <- function(input){
+  ################ FUNCTIONS ###############################
     
-    stages <- c("L", "S", "J", "A")
+  ## create lefkovitch matrix based on inputs
+  create_lefko <- function(M_eggs, M_prerecruits, M_recruits, F, fecundity, plus_yrs, prop_spawners){
+    stages <- c("P", "R")
+    lefko <- matrix(0, nrow=length(stages), ncol=length(stages))
+    rownames(lefko) <- colnames(lefko) <- stages
+    
+    tmat <- build_transitions()
+    lefko["R","P"] <- tmat["R","P"] * exp(-M_prerecruits)
+    lefko["P","P"] <- tmat["P","P"] * exp(-M_prerecruits)
+    lefko["R","R"] <- tmat["R","R"] * exp(-M_recruits - F) * (1-exp(-M_recruits - F)^(plus_yrs - 1))/(1-(exp(-M_recruits - F)^plus_yrs))
+    lefko["P","R"] <- fecundity * exp(-M_eggs) * prop_spawners
+    
+    return(lefko)
+  }
+  
+  ## harvest based on inputs
+  catch_fn <- function(abundance, F, M){
+    catch <- abundance * F * (1 - exp(-M-F) )/(M + F)
+    return(catch)
+  }
+    
+  ## project population forward in time based on inputs
+  project_fn <- function(nyears, F_t, M_eggs, M_prerecruits, M_recruits, fecundity, plus_yrs, prop_spawners){
+    stages <- c("P", "R")
+    pmat <- matrix(NA, nrow=nyears, ncol=4)
+    colnames(pmat) <- c(stages, "lambda", "catch")
+    
+    lefko1 <- create_lefko(M_eggs=M_eggs, M_prerecruits=M_prerecruits, M_recruits=M_recruits, F=F_t[1], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
+    e1 <- eigen(lefko1)
+    pmat[1,stages] <- abs(e1$vectors[,1])
+    pmat[1,"lambda"] <- e1$value[1]
+    pmat[1,"catch"] <- catch_fn(abundance=pmat[1,"R"], F=F_t[1], M=M_recruits)
+    
+    for(i in 2:nyears){	
+      
+      lefko <- create_lefko(M_eggs=M_eggs, M_prerecruits=M_prerecruits, M_recruits=M_recruits, F=F_t[i], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
+      
+      pmat[i,stages] <- pmat[(i-1),stages] %*% t(lefko)
+      pmat[i,"lambda"] <- sum(pmat[i,stages])/sum(pmat[(i-1),stages])
+      pmat[i,"catch"] <- catch_fn(abundance=pmat[i,"R"], F=F_t[i], M=M_recruits)
+      
+      rm(lefko)
+    }	
+    
+    catch <- pmat[,"catch"]	
+    
+    Outs <- NULL
+    Outs$pmat <- pmat
+    Outs$meancatch <- mean(catch)
+    Outs$totalcatch <- sum(catch)
+    return(Outs)
+  }
+    
+  ## calculate relative values
+  relative <- function(x){
+    x2 <- x/max(x)
+    return(x2)
+  }
+  
+  ## build transition matrix - fix values, but could add them to user interface in the future
+  build_transitions <- function(PP=0.05, PR=1-PP, RR=1){
+    stages <- c("P", "R")
     tmat <- matrix(0, nrow=length(stages), ncol=length(stages))
     rownames(tmat) <- colnames(tmat) <- stages
     
-    #### ----------- from larva ---------------------------
-    tmat["L","L"] <- input$LL * input$survL * input$capacity * input$quality
-    
-    ## larva to set = probability of transitioning * larva survival * beach capacity metric * beach quality metric
-    tmat["S","L"] <- input$LS * input$survL * input$capacity * input$quality
-    
-    #### ----------- from set -----------------------------
-    tmat["S","S"] <- input$SS * input$survS * input$quality
-    
-    ## set to juvenile = probability of transitioning * set survival * beach quality metric
-    tmat["J","S"] <- input$SJ * input$survS * input$quality
-    
-    #### ----------- from juvenile ------------------------
-    ## juvenile to juvenile = probability of staying juvenile * juvenile survival * beach quality metric * probability of not being harvested
-    tmat["J","J"] <- input$JJ * input$survJ * input$quality * (1 - input$hrJ)
-    
-    ## juvenile to adult = probability of transitioning * juvenile survival * beach quality metric * probability of not being harvested
-    tmat["A","J"] <- input$JA * input$survJ * input$quality * (1 - input$hrJ)
-    
-    #### ----------- from adult ---------------------------
-    ## adult to adult = probability of staying adult * adult survival * beach quality metric * probability of not being harvested
-    AA <- 1
-    tmat["A","A"] <- AA * input$survA * input$quality * (1 - input$hrA)
-    
-    ## eggs to larva = probability of an adult reproducing * fecundity * egg survival
-    tmat["L","A"] <- input$AL * input$fec * input$survE
+    tmat["P","P"] <- PP
+    tmat["R","P"] <- PR
+    tmat["R","R"] <- RR
+    if(all(colSums(tmat)!=1)) stop("Transitions must sum to 1")
     
     return(tmat)
-    
   }
   
-  get_abundances <- function(input, tmat, nyears, stochastic=FALSE, sd=0.6, seed=123){
+  build_results <- function(nyears=20, inc_waves, HABs, pollution, NIX, hypoxia, dec_habitat, M_eggs, M_prerecruits, M_recruits){
+    scenarios <- c("inc_waves", "HABs", "pollution", "NIX", "hypoxia", "dec_habitat")
+    choose_scenarios <- c(inc_waves, HABs, pollution, NIX, hypoxia, dec_habitat)
     
-    ## initial population size by stage in numbers
-    initial <- c("L"=input$fec*input$survE, "S"=input$fec*input$survE*input$survL, "J"=input$fec*input$survE*input$survL*input$survS, "A"=input$fec*input$survE*input$survL*input$survJ)
+    F_med <- rep(0.7, nyears)
     
-    ## population matrix
-    stages <- c("L", "S", "J", "A")
-    pmat <- matrix(NA, nrow=nyears, ncol=(length(stages)+1))
-    colnames(pmat) <- c(stages, "lamda")
-    
-    ## start population at initial values in first year
-    pmat[1,] <- c(initial, NA)
-    
-    set.seed(seed)
-    dev <- rnorm(nyears,0,sd)
-    
-    ## loop over years, starting with year 2
-    for(y in 2:nyears){
-      
-      ## larva = number of adults last year * number of surviving eggs
-      if(stochastic==TRUE) pmat[y, "L"] <- (pmat[y-1, "A"] * tmat["L", "A"] + pmat[y-1, "L"] * tmat["L", "L"])*exp(dev[y])
-      if(stochastic==FALSE) pmat[y, "L"] <- (pmat[y-1, "A"] * tmat["L", "A"])
-      
-      ## sets = number of larva last year * joint probability of being a set this year
-      pmat[y, "S"] <- (pmat[y-1, "L"] * tmat["S", "L"]) + (pmat[y-1, "S"] * tmat["S", "S"])
-      
-      ## juveniles = (number of sets last year * joint probability of being a juv this year if you were a set last year) + (number of juveniles last year * joint probability of being a juvenile this year if you were a juv last year)
-      pmat[y, "J"] <- (pmat[y-1, "S"] * tmat["J","S"]) + (pmat[y-1, "J"] * tmat["J", "J"])
-      
-      ## adults = (number of juveniles last year * joint probability of being an adult this year if you were a juv last year) + (number of adults last year * joint probability of being an adult this year if you were an adult last year)
-      pmat[y, "A"] <-  (pmat[y-1, "J"] * tmat["A", "J"]) + (pmat[y-1, "A"] * tmat["A", "A"])
-      
-      ## population growth rate
-      pmat[y, "lamda"] <- sum(pmat[y-1,1:length(stages)])/sum(pmat[y,1:length(stages)])
-      
-    }
-    
-    return(pmat)
+    if(inc_waves==TRUE) M_prerecruits <- M_prerecruits*1.3
+    out <- project_fn(nyears=nyears, F_t=F_med, M_eggs=M_eggs, M_prerecruits=M_prerecruits, M_recruits=M_recruits)
+    return(out$pmat)
   }
-
-  output$GrowthRate <- renderPlot({
-    tmat <- get_transitions(input=input)
-    pmat <- get_abundances(input=input, tmat=tmat, nyears=300, stochastic=FALSE)
-    plot(pmat[,"lamda"], type="l", lty=2, xlab="Year", ylab="Population growth rate", lwd=2)
-    abline(h=1, col="red", lwd=3)
-  })
   
-  output$StochasticGrowthRate <- renderPlot({
-    tmat <- get_transitions(input=input)
-    pmat <- get_abundances(input=input, tmat=tmat, nyears=400, stochastic=TRUE, sd=input$sd)
-    plot(pmat[301:400,"lamda"], type="l", lty=2, xlab="Year", ylab="Population growth rate", ylim=c(0,3))
-    for(i in 2:input$nsim){
-      pmat <- get_abundances(input=input, tmat=tmat, nyears=400, stochastic=TRUE, sd=input$sd, seed=i)
-      lines(pmat[301:400,"lamda"], type="l", lty=2, col=i)
-    }
-    abline(h=1, col="red", lwd=2)
-  })
-  
-  output$StochasticAbundance <- renderPlot({
-    tmat <- get_transitions(input=input)
-    pmat <- get_abundances(input=input, tmat=tmat, nyears=400, stochastic=TRUE, sd=input$sd)
-    plot(pmat[301:400,"A"], type="l", lty=2, xlab="Year", ylab="Adult abundance")
-#     for(i in 2:input$nsim){
-#       pmat <- get_abundances(input=input, tmat=tmat, nyears=400, stochastic=TRUE, sd=input$sd, seed=i)
-#       lines(pmat[301:400,"A"], type="l", lty=2, col=i)
-#     }
+  output$CatchOverTime <- renderPlot({
+    
+    res <- build_results(input$inc_waves, input$HABs, input$pollution, input$NIX, input$hypoxia, input$dec_habitat, input$M_eggs, input$M_prerecruits, input$M_recruits)
+    plot(res$catch, type-"l", col=1, lwd=2, ylim=c(-0.02, 0.5), xaxs="i", yaxs="i", main="Expected catch over time", xlab="Years into future", ylab="Catch")
+    
   })
   
 
+  
+  
   
 })

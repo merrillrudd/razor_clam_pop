@@ -8,49 +8,36 @@
 library(shiny)
 
 shinyUI(fluidPage(
-
-  # Application title
-  titlePanel("Razor clam population dynamics"),
+  titlePanel("Razor clam population dynamics under scenarios of change"),
+  
   column(2,
-         h4("Natural Survival Rates"),
-         sliderInput("survE", "Eggs:", value=0.003, min=0, max=1, step=0.001),
-         sliderInput("survL", "Larva:", value=0.03, min=0, max=1, step=0.01), 
-         sliderInput("survS", "Set:", value=0.05, min=0, max=1, step=0.01),
-         sliderInput("survJ", "Juveniles:", value = 0.2, min=0, max=1, step=0.01),
-         sliderInput("survA", "Adults:", value = 0.4, min=0, max=1, step=0.01),
-         h4("Harvest Rates"),
-         sliderInput("hrJ", "Juveniles:", value=0.7, min=0, max=1, step=0.01),
-         sliderInput("hrA", "Adults:", value=0.8, min=0, max=1, step=0.01)
-  ),
-  column(2,
-         h4("Transition Probabilities"),
-         p(em("Each stage must sum to 1")),
-         p(strong("Larva")),
-         fluidRow(column(5, numericInput("LL", h5("Stay"), value=0)),
-                  column(5, offset=1, numericInput("LS", h5("Transition"), value=1))),
-         p(strong("Set")),
-         fluidRow(column(5, numericInput("SS", h5("Stay"), value=0)),
-                  column(5, offset=1, numericInput("SJ", h5("Transition"), value=1))),
-         p(strong("Juvenile")),
-         fluidRow(column(5, numericInput("JJ", h5("Stay"), value=0.3)),
-                  column(5, offset=1, numericInput("JA", h5("Transition"), value=0.7))),
-         p(strong("Adults")),
-         numericInput("AL", h5("Proportion of adults reproducing annually"), value=1),
-         h4("Other Factors"),
-         sliderInput("fec", "Fecundity:", value=4e6, min=0, max=1e7, step=1e3),
-         sliderInput("capacity", "Beach capacity:", value=1, min=0, max=4, step=0.01),
-         sliderInput("quality", "Beach quality:", value=1, min=0, max=1, step=0.01)
-  ),
-  column(8, tabsetPanel(
-    tabPanel("Get model to equilibrium", plotOutput("GrowthRate")),
-    tabPanel("Stochastic simulation", 
-        sidebarLayout(
-          sidebarPanel(
-            sliderInput("sd", "Variability:", value=0.6, min=0, max=1, step=0.05),
-            numericInput("nsim", "Number of simulations",value=10, min=1, max=1000, step=1)
+      h4("Baseline natural mortality"),
+      numericInput("M_eggs", "Eggs:", value=1),
+      numericInput("M_prerecruits", "Pre-recruits:", value=0.75),
+      numericInput("M_recruits", "Recruits:", value=0.5),
+      h4("Other population processes"),
+      numericInput("plus_yrs", "Number of years as recruit:", value=3),
+      numericInput("prop_spawners", "Proportion of recruits spawning:", value=1),
+      numericInput("fecundity", "Number of eggs per adult (Hundred thousands):", value=3)
+    ),
+  column(10, 
+      sidebarLayout(
+        sidebarPanel(
+          h4("Scenarios of change"),
+          checkboxInput("inc_waves", "Increasing wave heights and storm surges in the Pacific Northwest", FALSE),
+          checkboxInput("HABs", "Harmful algal blooms", FALSE),
+          checkboxInput("pollution", "Pollution/oil spills", FALSE),
+          checkboxInput("NIX", "NIX", FALSE),
+          checkboxInput("hypoxia", "Hypoxia", FALSE),
+          checkboxInput("dec_habitat", "Habitat destruction", FALSE)
           ),
-          mainPanel(plotOutput("StochasticGrowthRate"), plotOutput("StochasticAbundance"))
-  ))))
+        mainPanel(
+          plotOutput("CatchOverTime")
+          )
+        )
+         )
+    )
+  
+  
 
-
-))
+)
