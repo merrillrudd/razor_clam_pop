@@ -92,7 +92,7 @@ shinyServer(function(input, output) {
     
     Outs <- list()
     u_t <- rep(input$u_equil, input$nyears)
-    Outs[["BAU"]] <- project_fn(nyears=input$nyears, u_t=u_t, M_eggs=input$M_eggs, M_prerecruits=input$M_prerecruits, M_recruits=input$M_recruits, fecundity=input$fecundity, plus_yrs=input$plus_yrs, prop_spawners=input$prop_spawners)
+    Outs[["SQ"]] <- project_fn(nyears=input$nyears, u_t=u_t, M_eggs=input$M_eggs, M_prerecruits=input$M_prerecruits, M_recruits=input$M_recruits, fecundity=input$fecundity, plus_yrs=input$plus_yrs, prop_spawners=input$prop_spawners)
     
     scenarios_on <- scenarios[which(scenarios==TRUE)]
     if(length(scenarios_on>1)){
@@ -163,7 +163,7 @@ shinyServer(function(input, output) {
           plus_yrs_new=input$plus_yrs
           prop_spawners_new=input$prop_spawners
           
-          val <- ifelse(input$HABs_strength=="Lower", input$u_equil/2, ifelse(input$HABs_strength=="Business As Usual", input$u_equil, ifelse(input$HABs_strength=="Higher", input$u_equil*1.5, stop("invalid input for change in HABs strength"))))
+          val <- ifelse(input$HABs_strength=="Lower", input$u_equil/2, ifelse(input$HABs_strength=="Status quo", input$u_equil, ifelse(input$HABs_strength=="Higher", input$u_equil*1.5, stop("invalid input for change in HABs strength"))))
           freq <- ifelse(input$HABs_freq=="High", 2, ifelse(input$HABs_freq=="Low", 5, stop("Invalid input for frequency of HABs closures")))
           index_off <- seq(freq, input$nyears, by=freq)
           index_on <- which(1:input$nyears %in% index_off==FALSE)
@@ -212,15 +212,15 @@ shinyServer(function(input, output) {
     
     scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
     res <- build_results(scenarios=scenarios)
-    plot(relative(res$BAU[,"catch"], max(res$BAU[,"catch"], na.rm=TRUE)), type="l", col=gray(0.5), lwd=2, ylim=c(0, 10), xaxs="i", yaxs="i", main="Expected catch over time", xlab="Years into future", ylab="Relative Catch")
-    if(any(scenarios==TRUE)) points(relative(res$total[,"catch"], max(res$BAU[,"catch"], na.rm=TRUE)), pch=19, col=gray(0.2), cex=2, xpd=NA)
+    plot(relative(res$SQ[,"catch"], max(res$SQ[,"catch"], na.rm=TRUE)), type="l", col=gray(0.5), lwd=2, ylim=c(0, 10), xaxs="i", yaxs="i", main="Expected catch over time", xlab="Years into future", ylab="Relative Catch")
+    if(any(scenarios==TRUE)) points(relative(res$total[,"catch"], max(res$SQ[,"catch"], na.rm=TRUE)), pch=19, col=gray(0.2), cex=2, xpd=NA)
   })
   
   output$RecruitsOverTime <- renderPlot({
     
     scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
     res <- build_results(scenarios=scenarios)
-    plot(res$BAU[,"R"], type="l", col=gray(0.5), lwd=2, ylim=c(0, 10), xaxs="i", yaxs="i", main="Expected number of recruits over time", xlab="Years into future", ylab="Relative number of recruits")
+    plot(res$SQ[,"R"], type="l", col=gray(0.5), lwd=2, ylim=c(0, 10), xaxs="i", yaxs="i", main="Expected number of recruits over time", xlab="Years into future", ylab="Relative number of recruits")
     if(any(scenarios==TRUE)) points(res$total[,"R"], pch=19, col=gray(0.2), cex=2, xpd=NA)
   })
 
@@ -228,9 +228,9 @@ shinyServer(function(input, output) {
     colors <- brewer.pal(4, "Set1")
     scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
     res <- build_results(scenarios=scenarios)
-    mean_catch <- relative(sapply(1:length(res), function(x) mean(res[[x]][,"catch"])), max=mean(res$BAU[,"catch"]))
+    mean_catch <- relative(sapply(1:length(res), function(x) mean(res[[x]][,"catch"])), max=mean(res$SQ[,"catch"]))
     res_names <- sapply(1:length(res), function(x) names(res[x]))
-    res_colors <- list("BAU"=gray(0.5))
+    res_colors <- list("SQ"=gray(0.5))
     scen_colors <- colors[which(names(scenarios) %in% res_names)]
     names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
     res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
@@ -244,15 +244,15 @@ shinyServer(function(input, output) {
     colors <- brewer.pal(4, "Set1")
     scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
     res <- build_results(scenarios=scenarios)
-    sum_catch <- relative(sapply(1:length(res), function(x) sum(res[[x]][,"catch"])), max=sum(res$BAU[,"catch"]))
+    sum_catch <- relative(sapply(1:length(res), function(x) sum(res[[x]][,"catch"])), max=sum(res$SQ[,"catch"]))
     res_names <- sapply(1:length(res), function(x) names(res[x]))
-    res_colors <- list("BAU"=gray(0.5))
+    res_colors <- list("SQ"=gray(0.5))
     scen_colors <- colors[which(names(scenarios) %in% res_names)]
     names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
     res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
     
     
-    plot(sum_catch, type="h", lwd=10, col=unlist(res_colors), xlim=c(0, length(scenarios)+3), xpd=NA, ylim=c(0,10), xaxt="n", xlab="Scenario", ylab="Total Catch", xaxs="i", yaxs="i")
+    plot(sum_catch, type="h", lwd=10, col=unlist(res_colors), xlim=c(0, length(scenarios)+3), xpd=NA, ylim=c(0,10), main="Total catch over time", xaxt="n", xlab="Scenario", ylab="Total Catch", xaxs="i", yaxs="i")
     axis(1, at=1:length(sum_catch), labels=res_names)
   })
   
@@ -262,7 +262,7 @@ shinyServer(function(input, output) {
     res <- build_results(scenarios=scenarios)
     no_catch <- sapply(1:length(res), function(x) length(which(res[[x]][,"exploit"]==0)))
     res_names <- sapply(1:length(res), function(x) names(res[x]))
-    res_colors <- list("BAU"=gray(0.5))
+    res_colors <- list("SQ"=gray(0.5))
     scen_colors <- colors[which(names(scenarios) %in% res_names)]
     names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
     res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
@@ -277,15 +277,33 @@ shinyServer(function(input, output) {
     scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
     res <- build_results(scenarios=scenarios)
     no_catch <- sapply(1:length(res), function(x) length(which(res[[x]][,"exploit"]==0)))
-    mean_catch <- relative(sapply(1:length(res), function(x) mean(res[[x]][,"catch"])), max=mean(res$BAU[,"catch"]))
+    mean_catch <- relative(sapply(1:length(res), function(x) mean(res[[x]][,"catch"])), max=mean(res$SQ[,"catch"]))
     res_names <- sapply(1:length(res), function(x) names(res[x]))
-    res_colors <- list("BAU"=gray(0.5))
+    res_colors <- list("SQ"=gray(0.5))
     scen_colors <- colors[which(names(scenarios) %in% res_names)]
     names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
     res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
     mean_catch[which(mean_catch > 3)] <- 3
     
-    plot(mean_catch, no_catch, pch=19, cex=2, col=unlist(res_colors), xlim=c(0, 3), ylim=c(0, 20), xpd=NA, xlab="Mean Catch", ylab="Number of years without catch", main="Tradeoff in Mean Catch and Number of Years Without Harvest", xaxs="i", yaxs="i")
+    plot(mean_catch, no_catch, pch=19, cex=2, col=unlist(res_colors), xlim=c(0, 3), ylim=c(0, 20), xaxt="n", xpd=NA, xlab="Mean Catch", ylab="Number of years without catch", main="Tradeoff in Mean Catch and Number of Years Without Harvest", xaxs="i", yaxs="i")
+    axis(1, at=seq(0,3,by=0.5), labels=c(seq(0,2.5,by=0.5),"3+"))  
+  })
+  
+  output$NoCatchByTotalCatch <- renderPlot({
+    colors <- brewer.pal(4, "Set1")
+    scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
+    res <- build_results(scenarios=scenarios)
+    no_catch <- sapply(1:length(res), function(x) length(which(res[[x]][,"exploit"]==0)))
+    total_catch <- relative(sapply(1:length(res), function(x) sum(res[[x]][,"catch"])), max=sum(res$SQ[,"catch"]))
+    res_names <- sapply(1:length(res), function(x) names(res[x]))
+    res_colors <- list("SQ"=gray(0.5))
+    scen_colors <- colors[which(names(scenarios) %in% res_names)]
+    names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
+    res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
+    total_catch[which(total_catch > 10)] <- 10
+    
+    plot(total_catch, no_catch, pch=19, cex=2, col=unlist(res_colors), xlim=c(0, 10), ylim=c(0, 20), xpd=NA, xaxt="n", xlab="Total Catch", ylab="Number of years without catch", main="Tradeoff in Total Catch and Number of Years Without Harvest", xaxs="i", yaxs="i")
+    axis(1, at=0:10, labels=c(0:9, "10+"))  
   })
 
   

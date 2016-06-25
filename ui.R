@@ -25,31 +25,38 @@ shinyUI(fluidPage(
       numericInput("nyears", "Number of years to project:", value=20)
     ),
   column(2, 
+         h4("Legend"),
+         div(h5(strong("Status quo (SQ)"), style=paste0("color:", gray(0.5)))),
+         div(h5(strong("Total impact from scenarios of change"), style=paste0("color:", gray(0.2)))),
           h4("Scenarios of change"),
           checkboxInput("inc_waves", div(strong("Increasing wave heights and storm surges"), style=paste0("color:", colors[1]))),
           conditionalPanel(
             condition = "input.inc_waves==true",
+            div(h5("Implementation: increasing mortality of pre-recruits over time"), style=paste0("color:", colors[1])),
             radioButtons("inc_waves_strength", div(h5(em("Strength of increase:")), style=paste0("color:", colors[1])), choice=list("High", "Low"), selected="Low")
           ),
           checkboxInput("HABs", div(strong("Harmful algal blooms"), style=paste0("color:", colors[2]))),
           conditionalPanel(
             condition = "input.HABs==true",
+            div(h5("Implementation: fishing mortality drops to zero during HAB closure, harvest rate may be adjusted from status quo during open season"), style=paste0("color:", colors[2])),
             radioButtons("HABs_freq", div(h5(em("Closure frequency:")), style=paste0("color:", colors[2])), choices=list("High","Low"), selected="Low"),
-            radioButtons("HABs_strength", div(h5(em("Open season harvest rate:")), style=paste0("color:", colors[2])), choice=list("Higher", "Business As Usual", "Lower"), selected="Business As Usual")
+            radioButtons("HABs_strength", div(h5(em("Open season harvest rate:")), style=paste0("color:", colors[2])), choice=list("Higher", "Status quo", "Lower"), selected="Status quo")
           ),
           checkboxInput("pollution", div(strong("Pollution/oil spills"), style=paste0("color:", colors[3]))),
           conditionalPanel(
             condition = "input.pollution==true",
+            div(h5("Implementation: increased mortality of pre-recruits and recruits"), style=paste0("color:", colors[3])),
             radioButtons("pollution_strength", div(h5(em("Intensity:")), style=paste0("color:", colors[3])), choice=list("High", "Low"), selected="Low")
           ),
           checkboxInput("dec_habitat", div(strong("Habitat destruction"), style=paste0("color:", colors[4]))),
           conditionalPanel(
             condition = "input.dec_habitat==true",
+            div(h5("Implementation: increasing mortality of pre-recruits and recruits over time"), style=paste0("color:", colors[4])),
             radioButtons("dec_habitat_strength", div(h5(em("Rate of decrease:")), style=paste0("color:", colors[4])), choice=list("High", "Low"), selected="Low")
           )
      ),
      column(9,
           column(6, plotOutput("NoCatchByMeanCatch"),plotOutput("CatchOverTime")),
-          column(6, plotOutput("TotalCatch"), plotOutput("RecruitsOverTime"))
+          column(6, plotOutput("NoCatchByTotalCatch"), plotOutput("RecruitsOverTime"))
           )
 ))  
