@@ -12,19 +12,19 @@ colors <- brewer.pal(4, "Set1")
 shinyUI(fluidPage(
   titlePanel("Razor clam population dynamics under scenarios of change"),
   
-  column(1,
-      h4("Baseline natural mortality"),
-      numericInput("M_eggs", "Eggs:", value=1),
-      numericInput("M_prerecruits", "Pre-recruits:", value=0.79),
-      numericInput("M_recruits", "Recruits:", value=0.3),
-      h4("Other population processes"),
-      numericInput("plus_yrs", "Number of years as recruit:", value=3),
-      numericInput("prop_spawners", "Proportion of recruits spawning:", value=1),
-      h4("Management"),
-      numericInput("u_equil", "Baseline harvest rate:", value=0.3),
-      numericInput("nyears", "Number of years to project:", value=20)
+  conditionalPanel("$('li.active a').first().html()==='Population dynamics'",
+                   column(2, img(src="RCpic1s.png", align="center"))
+  ),
+  conditionalPanel("$('li.active a').first().html()==='Explore dynamics'",
+    column(2, 
+           sliderInput("u", "Harvest rate:", value=0.3, min=0, max=1, step=0.05),
+           sliderInput("dd", "Density dependence:", value=-1.19, min=-2, max=2, step=0.01),
+           sliderInput("S_prerecruits", "Pre-recruits survival:", value=0.11, min=0, max=1, step=0.01),
+           sliderInput("S_recruits", "Recruits survival:", value=0.7, min=0, max=1, step=0.01),
+          sliderInput("yct", "Fishing closed:", value=rep(0,20), min=0, max=20, step=1))
     ),
-  column(2, 
+  conditionalPanel("$('li.active a').first().html()==='Explore risks'",
+      column(2, 
          h4("Legend"),
          div(h5(strong("Status quo (SQ)"), style=paste0("color:", gray(0.5)))),
          div(h5(strong("Total impact from scenarios of change"), style=paste0("color:", gray(0.2)))),
@@ -54,9 +54,13 @@ shinyUI(fluidPage(
             div(h5("Implementation: increasing mortality of pre-recruits and recruits over time"), style=paste0("color:", colors[4])),
             radioButtons("dec_habitat_strength", div(h5(em("Rate of decrease:")), style=paste0("color:", colors[4])), choice=list("High", "Low"), selected="Low")
           )
-     ),
-     column(9,
-          column(6, plotOutput("NoCatchByMeanCatch"),plotOutput("CatchOverTime")),
-          column(6, plotOutput("NoCatchByTotalCatch"), plotOutput("RecruitsOverTime"))
-          )
+     )
+  ),
+  column(10,
+    tabsetPanel(
+      tabPanel("Population dynamics", column(6,img(src="razor_clam_pop_LARGE.png", align="center"))),
+      tabPanel("Explore dynamics", plotOutput("CompareConstantHarvest")),
+      tabPanel("Explore risks", p(""))
+    )       
+  )
 ))  
