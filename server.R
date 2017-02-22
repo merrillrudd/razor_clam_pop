@@ -32,7 +32,7 @@ build_transitions <- function(PP=0.05, PR=1-PP, RR=1){
 ##### --------- Lefkovitch matrix ------------  
 
 ## create lefkovitch matrix based on inputs
-create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_yrs, prop_spawners, dd, abund, capacity=1){
+create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_yrs, prop_spawners, dd, abund, capacity){
   stages <- c("P", "R")
   lefko <- matrix(0, nrow=length(stages), ncol=length(stages))
   rownames(lefko) <- colnames(lefko) <- stages
@@ -47,32 +47,26 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
   return(lefko)
 }
 
-  # lefko1 <- create_lefko(dd=0,abund=0,S_eggs=0.0000556, S_prerecruits=input$S_prerecruits, S_recruits=0.75, u=0.3, fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+  # lefko1 <- create_lefko(capacity=capacity,dd=0,abund=0,S_eggs=0.0000556, S_prerecruits=0.11, S_recruits=0.75, u=0.3, fecundity=300000, plus_yrs=3, prop_spawners=0.5)
   # eigen(lefko1)
   # 
-  # lefko0 <- create_lefko(dd=0,abund=0,S_eggs=0.0000556, S_prerecruits=input$S_prerecruits, S_recruits=0.75, u=0, fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+  # lefko0 <- create_lefko(capacity=capacity,dd=0,abund=0,S_eggs=0.0000556, S_prerecruits=0.11, S_recruits=0.75, u=0, fecundity=300000, plus_yrs=3, prop_spawners=0.5)
   # eigen(lefko0)
 
 ##### --------- Project model ------------  
 
   ## project population forward in time based on inputs
-  project_fn <- function(nyears, u_t, S_eggs, S_prerecruits, S_recruits, fecundity, plus_yrs, prop_spawners, rate_Mpre=FALSE, rate_Mrec=FALSE, dd){
+  project_fn <- function(nyears, u_t, S_eggs, S_prerecruits, S_recruits, fecundity, plus_yrs, prop_spawners, dd, capacity){
     stages <- c("P", "R")
     nyears <- 20
     pmat <- matrix(NA, nrow=nyears, ncol=5)
     colnames(pmat) <- c(stages, "lambda", "catch", "exploit")
     
-    if(rate_Mpre==FALSE & rate_Mrec==FALSE) lefko0 <- create_lefko(dd=dd,abund=1,S_eggs=S_eggs, S_prerecruits=S_prerecruits, S_recruits=S_recruits, u=0, fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-    if(rate_Mpre==TRUE & rate_Mrec==FALSE) lefko0 <- create_lefko(dd=dd,abund=1,S_eggs=S_eggs, S_prerecruits=S_prerecruits[1], S_recruits=S_recruits, u=0, fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-    if(rate_Mpre==FALSE & rate_Mrec==TRUE) lefko0 <- create_lefko(dd=dd,abund=1,S_eggs=S_eggs, S_prerecruits=S_prerecruits, S_recruits=S_recruits[1], u=0, fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-    if(rate_Mpre==TRUE & rate_Mrec==TRUE) lefko0 <- create_lefko(dd=dd,abund=1,S_eggs=S_eggs, S_prerecruits=S_prerecruits[1], S_recruits=S_recruits[1], u=0, fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
+    lefko0 <- create_lefko(capacity=capacity,dd=dd,abund=1,S_eggs=S_eggs[1], S_prerecruits=S_prerecruits[1], S_recruits=S_recruits[1], u=0, fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
     e0 <- eigen(lefko0)
     unfishedR <- abs(e0$vectors[,1])[2]
     
-    if(rate_Mpre==FALSE & rate_Mrec==FALSE) lefko1 <- create_lefko(dd=dd,abund=1,S_eggs=S_eggs, S_prerecruits=S_prerecruits, S_recruits=S_recruits, u=u_t[1], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-    if(rate_Mpre==TRUE & rate_Mrec==FALSE) lefko1 <- create_lefko(dd=dd,abund=1,S_eggs=S_eggs, S_prerecruits=S_prerecruits[1], S_recruits=S_recruits, u=u_t[1], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-    if(rate_Mpre==FALSE & rate_Mrec==TRUE) lefko1 <- create_lefko(dd=dd,abund=1,S_eggs=S_eggs, S_prerecruits=S_prerecruits, S_recruits=S_recruits[1], u=u_t[1], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-    if(rate_Mpre==TRUE & rate_Mrec==TRUE) lefko1 <- create_lefko(dd=dd,abund=1,S_eggs=S_eggs, S_prerecruits=S_prerecruits[1], S_recruits=S_recruits[1], u=u_t[1], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
+    lefko1 <- create_lefko(capacity=capacity,dd=dd,abund=1,S_eggs=S_eggs[1], S_prerecruits=S_prerecruits[1], S_recruits=S_recruits[1], u=u_t[1], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
     e1 <- eigen(lefko1)
     pmat[1,stages] <- abs(e1$vectors[,1])
     pmat[1,"lambda"] <- e1$value[1]
@@ -81,10 +75,7 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     
     for(i in 2:nyears){ 
     
-      if(rate_Mpre==FALSE & rate_Mrec==FALSE) lefko <- create_lefko(dd=dd,abund=sum(pmat[i-1,c("P","R")]),S_eggs=S_eggs, S_prerecruits=S_prerecruits, S_recruits=S_recruits, u=u_t[i], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-      if(rate_Mpre==TRUE & rate_Mrec==FALSE) lefko <- create_lefko(dd=dd,abund=sum(pmat[i-1,c("P","R")]),S_eggs=S_eggs, S_prerecruits=S_prerecruits[i], S_recruits=S_recruits, u=u_t[i], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-      if(rate_Mpre==FALSE & rate_Mrec==TRUE) lefko <- create_lefko(dd=dd,abund=sum(pmat[i-1,c("P","R")]),S_eggs=S_eggs, S_prerecruits=S_prerecruits, S_recruits=S_recruits[i], u=u_t[i], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
-      if(rate_Mpre==TRUE & rate_Mrec==TRUE) lefko <- create_lefko(dd=dd,abund=sum(pmat[i-1,c("P","R")]),S_eggs=S_eggs, S_prerecruits=S_prerecruits[i], S_recruits=S_recruits[i], u=u_t[i], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
+      lefko <- create_lefko(capacity=capacity,dd=dd,abund=sum(pmat[i-1,c("P","R")]),S_eggs=S_eggs[i], S_prerecruits=S_prerecruits[i], S_recruits=S_recruits[i], u=u_t[i], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners)
       
       pmat[i,stages] <- pmat[(i-1),stages] %*% t(lefko)
       pmat[i,"lambda"] <- sum(pmat[i,stages])/sum(pmat[(i-1),stages])
@@ -118,11 +109,12 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
   output$CompareConstantHarvest <- renderPlot({
     nyears <- 20
     ut <- rep(input$u, nyears)
-    dd <- input$dd
+    dd <- -1.19
+    capacity <- 1
     if(any(input$yct>0)) ut[input$yct[1]:input$yct[2]] <- 0
-    base <- project_fn(dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=0.0000556, S_prerecruits=input$S_prerecruits, S_recruits=input$S_recruits, fecundity=300000, plus_yrs=3, prop_spawners=0.5, rate_Mpre=FALSE, rate_Mrec=FALSE)
-    alt <- project_fn(dd=dd,nyears=nyears, u_t=ut, S_eggs=0.0000556, S_prerecruits=input$S_prerecruits, S_recruits=input$S_recruits, fecundity=300000, plus_yrs=3, prop_spawners=0.5, rate_Mpre=FALSE, rate_Mrec=FALSE)
-    close <- project_fn(dd=dd,nyears=nyears, u_t=rep(0,nyears), S_eggs=0.0000556, S_prerecruits=input$S_prerecruits, S_recruits=input$S_recruits, fecundity=300000, plus_yrs=3, prop_spawners=0.5, rate_Mpre=FALSE, rate_Mrec=FALSE)
+    base <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+    alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+    close <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=rep(0,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
     
     par(mfrow=c(1,4))
     plot(base[,"exploit"], ylim=c(0,1), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
@@ -152,15 +144,53 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     
   })
 
-
-
-  # output$CatchOverTime <- renderPlot({
-    
-  #   scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
-  #   res <- build_results(scenarios=scenarios)
-  #   plot(relative(res$SQ[,"catch"], max(res$SQ[,"catch"], na.rm=TRUE)), type="l", col=gray(0.5), lwd=2, ylim=c(0, 10), xaxs="i", yaxs="i", main="Expected catch over time", xlab="Years into future", ylab="Relative Catch")
-  #   if(any(scenarios==TRUE)) points(relative(res$total[,"catch"], max(res$SQ[,"catch"], na.rm=TRUE)), pch=19, col=gray(0.2), cex=2, xpd=NA)
-  # })
+  output$ScenarioOutput <- renderPlot({
+    colors <- brewer.pal(4, "Set1")
+     scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
+     nyears <- 20
+     ut <- rep(input$u, nyears)
+     if(any(input$hab_yct>0)) ut[input$hab_yct[1]:input$hab_yct[2]] <- 0
+     
+     dd <- -1.19
+     if(input$dec_habitat==TRUE) capacity <- input$capacity
+     if(input$dec_habitat==FALSE) capacity <- 1
+     
+     if(input$inc_waves==TRUE) S_prerecruits <- seq(0.11, input$min_Spre, length=nyears)
+     if(input$inc_waves==FALSE) S_prerecruits <- rep(0.11, nyears)
+     
+     base <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+     alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(0.0000556,nyears), S_prerecruits=S_prerecruits, S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+     
+     par(mfrow=c(2,4))
+     plot(rep(0.11,nyears), col="gray", lwd=4, xlim=c(1,nyears), ylim=c(0,0.2), xlab="Year", ylab="Pre-recruit survival", type="l", xaxs="i", yaxs="i")
+     lines(S_prerecruits, lwd=4, col=colors[1])
+     
+     plot(x=1,y=1,type="n",axes=F,ann=F)
+     plot(x=1,y=1,type="n",axes=F,ann=F)
+     plot(x=1,y=1,type="n",axes=F,ann=F)
+     
+     plot(base[,"exploit"], ylim=c(0,1), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
+     lines(alt[,"exploit"], col=colors[1], lwd=4)
+     axis(2, cex.axis=2, las=2, at=seq(0,0.9,by=0.3))
+     mtext(side=3, "Harvest rate", font=2, cex=1.5, line=-2)
+     axis(1, cex.axis=2)
+     
+     plot(relative(base[,"catch"], max(base[,"catch"])), ylim=c(0,3), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
+     lines(relative(alt[,"catch"], max(base[,"catch"])), lwd=4, col=colors[1])
+     axis(2, cex.axis=2, las=2, at=seq(0,2.5,by=0.5))
+     mtext(side=3, "Catch", font=2, cex=1.5, line=-2)
+     axis(1, cex.axis=2)
+     
+     plot(relative(base[,"R"], max(base[,"R"])), ylim=c(0,2), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
+     lines(relative(alt[,"R"], max(base[,"R"])), lwd=4, col=colors[1])
+     axis(2, cex.axis=2, las=2, at=seq(0,20,by=1))
+     mtext(side=3, "Recruits", font=2, cex=1.5, line=-2)
+     axis(1, cex.axis=2)
+     
+     plot(x=1,y=1,type="n",axes=F,ann=F)
+     legend("topleft", cex=2, lwd=4, box.lwd=0, box.col="white", legend=c("Equilibrium", "With impact"), col=c("gray", colors[1]))
+     
+   })
   
   # output$RecruitsOverTime <- renderPlot({
     
