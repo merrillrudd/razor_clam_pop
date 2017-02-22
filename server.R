@@ -120,21 +120,21 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     plot(base[,"exploit"], ylim=c(0,1), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
     lines(alt[,"exploit"], col="red", lwd=4)
     lines(close[,"exploit"], col="blue", lwd=4)
-    axis(2, cex.axis=2, las=2, at=seq(0,0.9,by=0.3))
+    axis(2, cex.axis=2, las=2, at=seq(0,1,by=0.25))
     mtext(side=3, "Harvest rate", font=2, cex=1.5, line=-2)
     axis(1, cex.axis=2)
     
     plot(relative(base[,"catch"], max(base[,"catch"])), ylim=c(0,3), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
     lines(relative(alt[,"catch"], max(base[,"catch"])), lwd=4, col="red")
     lines(relative(close[,"catch"], max(base[,"catch"])), lwd=4, col="blue")
-    axis(2, cex.axis=2, las=2, at=seq(0,2.5,by=0.5))
+    axis(2, cex.axis=2, las=2, at=seq(0,3,by=1))
     mtext(side=3, "Catch", font=2, cex=1.5, line=-2)
     axis(1, cex.axis=2)
     
     plot(relative(base[,"R"], max(base[,"R"])), ylim=c(0,2), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
     lines(relative(alt[,"R"], max(base[,"R"])), lwd=4, col="red")
     lines(relative(close[,"R"], max(base[,"R"])), lwd=4, col="blue")
-    axis(2, cex.axis=2, las=2, at=seq(0,20,by=1))
+    axis(2, cex.axis=2, las=2, at=seq(0,2,by=0.5))
     mtext(side=3, "Recruits", font=2, cex=1.5, line=-2)
     axis(1, cex.axis=2)
     
@@ -145,146 +145,131 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
   })
 
   output$ScenarioOutput <- renderPlot({
-    colors <- brewer.pal(4, "Set1")
+    colors <- brewer.pal(4, "Set1")[c(2,3,1,4)]
      scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
      nyears <- 20
-     ut <- rep(input$u, nyears)
-     if(any(input$hab_yct>0)) ut[input$hab_yct[1]:input$hab_yct[2]] <- 0
+     ut <- rep(input$u2, nyears)
+     if(scenarios$HABs==TRUE) ut[seq(from=input$hab_freq,by=input$hab_freq,length=input$hab_nyears)] <- 0
      
      dd <- -1.19
-     if(input$dec_habitat==TRUE) capacity <- input$capacity
-     if(input$dec_habitat==FALSE) capacity <- 1
+     if(scenarios$dec_habitat==TRUE) capacity <- input$capacity
+     if(scenarios$dec_habitat==FALSE) capacity <- 1
      
-     if(input$inc_waves==TRUE) S_prerecruits <- seq(0.11, input$min_Spre, length=nyears)
-     if(input$inc_waves==FALSE) S_prerecruits <- rep(0.11, nyears)
+     if(scenarios$inc_waves==TRUE | scenarios$pollution==TRUE) S_prerecruits <- seq(0.11, input$min_Spre, length=nyears)
+     if(scenarios$inc_waves==FALSE & scenarios$pollution==FALSE) S_prerecruits <- rep(0.11, nyears)
      
-     base <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
-     alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(0.0000556,nyears), S_prerecruits=S_prerecruits, S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+     if(scenarios$pollution==TRUE) S_recruits <- seq(0.7, input$min_Srec, length=nyears)
+     if(scenarios$pollution==FALSE) S_recruits <- rep(0.7, nyears)
      
-     par(mfrow=c(2,4))
-     plot(rep(0.11,nyears), col="gray", lwd=4, xlim=c(1,nyears), ylim=c(0,0.2), xlab="Year", ylab="Pre-recruit survival", type="l", xaxs="i", yaxs="i")
-     lines(S_prerecruits, lwd=4, col=colors[1])
+     base <- project_fn(capacity=1, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+     alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(0.0000556,nyears), S_prerecruits=S_prerecruits, S_recruits=S_recruits, fecundity=300000, plus_yrs=3, prop_spawners=0.5)
      
-     plot(x=1,y=1,type="n",axes=F,ann=F)
-     plot(x=1,y=1,type="n",axes=F,ann=F)
-     plot(x=1,y=1,type="n",axes=F,ann=F)
+     par(mfrow=c(2,3))
      
      plot(base[,"exploit"], ylim=c(0,1), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
-     lines(alt[,"exploit"], col=colors[1], lwd=4)
-     axis(2, cex.axis=2, las=2, at=seq(0,0.9,by=0.3))
+     if(length(which(scenarios==TRUE))>0) col <- "black"
+     if(scenarios$HABs==TRUE) col <- colors[2]
+     if(length(which(scenarios==TRUE))>0) lines(alt[,"exploit"], col=col, lwd=4)
+     axis(2, cex.axis=2, las=2, at=seq(0,1,by=0.5))
+     mtext(side=1, "Year", line=3)
      mtext(side=3, "Harvest rate", font=2, cex=1.5, line=-2)
      axis(1, cex.axis=2)
      
      plot(relative(base[,"catch"], max(base[,"catch"])), ylim=c(0,3), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
-     lines(relative(alt[,"catch"], max(base[,"catch"])), lwd=4, col=colors[1])
-     axis(2, cex.axis=2, las=2, at=seq(0,2.5,by=0.5))
+     if(length(which(scenarios==TRUE))>0){
+       col <- "black"
+       lty <- 1
+     }
+     if(scenarios$HABs==TRUE){
+       col <- colors[2]
+       lty <- 1
+     }
+     if(length(which(scenarios==TRUE))>0) lines(relative(alt[,"catch"], max(base[,"catch"])), col=col, lwd=4, lty=lty)
+
+     axis(2, cex.axis=2, las=2, at=seq(0,3,by=1))
+     mtext(side=1, "Year", line=3)
      mtext(side=3, "Catch", font=2, cex=1.5, line=-2)
      axis(1, cex.axis=2)
      
      plot(relative(base[,"R"], max(base[,"R"])), ylim=c(0,2), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
-     lines(relative(alt[,"R"], max(base[,"R"])), lwd=4, col=colors[1])
-     axis(2, cex.axis=2, las=2, at=seq(0,20,by=1))
+     if(length(which(scenarios==TRUE))>0){
+       col <- "black"
+       lty=1
+     }
+     if(scenarios$inc_waves==TRUE & scenarios$pollution==FALSE & scenarios$dec_habitat==FALSE){
+       col <- colors[1]
+       lty=1
+     }
+     if(scenarios$inc_waves==FALSE & scenarios$pollution==TRUE & scenarios$dec_habitat==FALSE){
+       col <- colors[3]
+       lty=1
+     }
+     if(scenarios$inc_waves==TRUE & scenarios$pollution==TRUE & scenarios$dec_habitat==FALSE){
+       col <- c(colors[1], colors[3])
+       lty <- c(1,2)
+     }
+     if(scenarios$inc_waves==FALSE & scenarios$pollution==FALSE & scenarios$dec_habitat==TRUE){
+       col <- colors[4]
+       lty <- 1
+     }
+     if(scenarios$inc_waves==TRUE & scenarios$pollution==FALSE & scenarios$dec_habitat==TRUE){
+       col <- c(colors[1], colors[4])
+       lty <- c(1,2)
+     }
+     if(scenarios$inc_waves==FALSE & scenarios$pollution==TRUE & scenarios$dec_habitat==TRUE){
+       col <- c(colors[3], colors[4])
+       lty <- c(1,2)
+     }
+     if(scenarios$inc_waves==TRUE & scenarios$pollution==TRUE & scenarios$dec_habitat==TRUE){
+       col <- c(colors[1], colors[3], colors[4])
+       lty <- c(1,2,3)
+     }
+     if(length(which(scenarios==TRUE))>0){
+       for(i in 1:length(col)){
+         lines(relative(alt[,"R"], max(base[,"R"])), col=col[i], lty=lty[i], lwd=4)
+       }
+     }
+     axis(2, cex.axis=2, las=2, at=seq(0,2,by=0.5))
+     mtext(side=1, "Year", line=3)
      mtext(side=3, "Recruits", font=2, cex=1.5, line=-2)
      axis(1, cex.axis=2)
+  
      
-     plot(x=1,y=1,type="n",axes=F,ann=F)
-     legend("topleft", cex=2, lwd=4, box.lwd=0, box.col="white", legend=c("Equilibrium", "With impact"), col=c("gray", colors[1]))
+
+     if(scenarios$inc_waves==TRUE|scenarios$pollution==TRUE){
+        plot(rep(0.11,nyears), col="gray", lwd=4, xlim=c(1,nyears), ylim=c(0,0.2), xlab="", ylab="", type="l", xaxs="i", yaxs="i", xaxt="n", yaxt="n")
+        if(scenarios$inc_waves==TRUE & scenarios$pollution==FALSE){
+          col <- colors[1]
+          lty=1
+        }
+        if(scenarios$inc_waves==FALSE & scenarios$pollution==TRUE){
+          col <- colors[3]
+          lty=1
+        }
+        if(scenarios$inc_waves==TRUE & scenarios$pollution==TRUE){
+          col <- c(colors[1], colors[3])
+          lty <- c(1,2)
+        }
+        for(i in 1:length(col)){
+          lines(S_prerecruits, lwd=4, col=col[i], lty=lty[i])
+        }
+        axis(2, cex.axis=2, las=2, at=seq(0,0.2,by=0.1))
+        mtext(side=1, "Year", line=3)
+        mtext(side=3, "Pre-recruit survival", font=2, cex=1.5, line=-2)
+        axis(1, cex.axis=2)
+     }
+     
+     if(scenarios$pollution==TRUE){
+       plot(rep(0.7,nyears), col="gray", lwd=4, xlim=c(1,nyears), ylim=c(0,1), xlab="", ylab="", type="l", xaxs="i", yaxs="i", xaxt="n", yaxt="n")
+       lines(S_recruits, lwd=4, col=colors[3])
+       axis(2, cex.axis=2, las=2, at=seq(0,1,by=0.25))
+       mtext(side=1, "Year", line=3)
+       mtext(side=3, "Recruit survival", font=2, cex=1.5, line=-2)
+       axis(1, cex.axis=2)
+     }
      
    })
-  
-  # output$RecruitsOverTime <- renderPlot({
-    
-  #   scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
-  #   res <- build_results(scenarios=scenarios)
-  #   plot(res$SQ[,"R"], type="l", col=gray(0.5), lwd=2, ylim=c(0, 10), xaxs="i", yaxs="i", main="Expected number of recruits over time", xlab="Years into future", ylab="Relative number of recruits")
-  #   if(any(scenarios==TRUE)) points(res$total[,"R"], pch=19, col=gray(0.2), cex=2, xpd=NA)
-  # })
 
-  # output$MeanCatch <- renderPlot({
-  #   colors <- brewer.pal(4, "Set1")
-  #   scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
-  #   res <- build_results(scenarios=scenarios)
-  #   mean_catch <- relative(sapply(1:length(res), function(x) mean(res[[x]][,"catch"])), max=mean(res$SQ[,"catch"]))
-  #   res_names <- sapply(1:length(res), function(x) names(res[x]))
-  #   res_colors <- list("SQ"=gray(0.5))
-  #   scen_colors <- colors[which(names(scenarios) %in% res_names)]
-  #   names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
-  #   res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
-    
-    
-  #   plot(mean_catch, type="h", lwd=10, col=unlist(res_colors), xlim=c(0, length(scenarios)+3), ylim=c(0,10), xaxt="n", xlab="Scenario", ylab="Mean Catch", xaxs="i", yaxs="i")
-  #   axis(1, at=1:length(mean_catch), labels=res_names)
-  # })
-  
-  # output$TotalCatch <- renderPlot({
-  #   colors <- brewer.pal(4, "Set1")
-  #   scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
-  #   res <- build_results(scenarios=scenarios)
-  #   sum_catch <- relative(sapply(1:length(res), function(x) sum(res[[x]][,"catch"])), max=sum(res$SQ[,"catch"]))
-  #   res_names <- sapply(1:length(res), function(x) names(res[x]))
-  #   res_colors <- list("SQ"=gray(0.5))
-  #   scen_colors <- colors[which(names(scenarios) %in% res_names)]
-  #   names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
-  #   res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
-    
-    
-  #   plot(sum_catch, type="h", lwd=10, col=unlist(res_colors), xlim=c(0, length(scenarios)+3), xpd=NA, ylim=c(0,10), main="Total catch over time", xaxt="n", xlab="Scenario", ylab="Total Catch", xaxs="i", yaxs="i")
-  #   axis(1, at=1:length(sum_catch), labels=res_names)
-  # })
-  
-  # output$NoCatch <- renderPlot({
-  #   colors <- brewer.pal(4, "Set1")
-  #   scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
-  #   res <- build_results(scenarios=scenarios)
-  #   no_catch <- sapply(1:length(res), function(x) length(which(res[[x]][,"exploit"]==0)))
-  #   res_names <- sapply(1:length(res), function(x) names(res[x]))
-  #   res_colors <- list("SQ"=gray(0.5))
-  #   scen_colors <- colors[which(names(scenarios) %in% res_names)]
-  #   names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
-  #   res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
-    
-    
-  #   plot(no_catch, type="h", lwd=10, col=unlist(res_colors), xlim=c(0, length(scenarios)+3), xpd=NA, ylim=c(0,10), xaxt="n", xlab="Scenario", ylab="Number of years", xaxs="i", yaxs="i")
-  #   axis(1, at=1:length(no_catch), labels=res_names)
-  # })
-  
-  # output$NoCatchByMeanCatch <- renderPlot({
-  #   colors <- brewer.pal(4, "Set1")
-  #   scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
-  #   res <- build_results(scenarios=scenarios)
-  #   no_catch <- sapply(1:length(res), function(x) length(which(res[[x]][,"exploit"]==0)))
-  #   mean_catch <- relative(sapply(1:length(res), function(x) mean(res[[x]][,"catch"])), max=mean(res$SQ[,"catch"]))
-  #   res_names <- sapply(1:length(res), function(x) names(res[x]))
-  #   res_colors <- list("SQ"=gray(0.5))
-  #   scen_colors <- colors[which(names(scenarios) %in% res_names)]
-  #   names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
-  #   res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
-  #   mean_catch[which(mean_catch > 3)] <- 3
-    
-  #   plot(mean_catch, no_catch, pch=19, cex=2, col=unlist(res_colors), xlim=c(0, 3), ylim=c(0, 20), xaxt="n", xpd=NA, xlab="Mean Catch", ylab="Number of years without catch", main="Tradeoff in Mean Catch and Number of Years Without Harvest", xaxs="i", yaxs="i")
-  #   axis(1, at=seq(0,3,by=0.5), labels=c(seq(0,2.5,by=0.5),"3+"))  
-  # })
-  
-  # output$NoCatchByTotalCatch <- renderPlot({
-  #   colors <- brewer.pal(4, "Set1")
-  #   scenarios=list("inc_waves"=input$inc_waves, "HABs"=input$HABs, "pollution"=input$pollution, "dec_habitat"=input$dec_habitat)
-  #   res <- build_results(scenarios=scenarios)
-  #   no_catch <- sapply(1:length(res), function(x) length(which(res[[x]][,"exploit"]==0)))
-  #   total_catch <- relative(sapply(1:length(res), function(x) sum(res[[x]][,"catch"])), max=sum(res$SQ[,"catch"]))
-  #   res_names <- sapply(1:length(res), function(x) names(res[x]))
-  #   res_colors <- list("SQ"=gray(0.5))
-  #   scen_colors <- colors[which(names(scenarios) %in% res_names)]
-  #   names(scen_colors) <- names(scenarios)[which(names(scenarios)%in% res_names)]
-  #   res_colors <- c(res_colors, scen_colors, "total"=gray(0.2))
-  #   total_catch[which(total_catch > 10)] <- 10
-    
-  #   plot(total_catch, no_catch, pch=19, cex=2, col=unlist(res_colors), xlim=c(0, 10), ylim=c(0, 20), xpd=NA, xaxt="n", xlab="Total Catch", ylab="Number of years without catch", main="Tradeoff in Total Catch and Number of Years Without Harvest", xaxs="i", yaxs="i")
-  #   axis(1, at=0:10, labels=c(0:9, "10+"))  
-  # })
-
-  
-
-  
   
   
 })
