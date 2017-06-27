@@ -12,17 +12,48 @@ colors <- brewer.pal(4, "Set1")[c(2,3,1,4)]
 shinyUI(fluidPage(
   titlePanel("Razor clam population dynamics under scenarios of change"),
   tabsetPanel(
+    tabPanel("Introduction",
+      column(5, h3("Goals"),
+             h4("Based on interviews with Quinault Indian Nation tribal members, natural resource managers, and scientists, we developed this tool to:"),
+             h4("1. Provide information to tribal members about the biological mechanisms behind their perceived risks to the razor clam population and harvest."),
+             h4("2. Explore potential impacts of perceived risks to the razor clam population and harvest using a simplified population model."),
+             br(),
+             h6("Authors: Merrill Rudd, Kate Crosman, Eleni Petrou, Michael Tillotson")),
+      column(5, h3("Definitions"),
+             h4("Please refer to the following terms used throughout this tool."),
+             h4(strong("Pre-recruits:"),"razor clams below legal size for harvest."),
+             h4(strong("Recruits:"), "razor clams above legal size for harvest."),
+             h4(strong("Density-dependence:"), "slower population growth at large population sizes due to competition for space and food."),
+             h4(strong("Survival:"), "the rate at which razor clams survive to the next year, avoiding both dying naturally and from harvest"),
+             h4(strong("Harvest rate:"), "the amount of fishing pressure. For example, management aims to harvest 30% of legally-sized adult razor clams.")
+      )),
     tabPanel("Population dynamics", 
-             column(2, img(src="RCpic1s.png", align="center")),
+             column(2, img(src="RCpic1s.png", align="center"),
+                    h5(strong("Pre-recruits:"),"razor clams below legal size for harvest."),
+                    h5(strong("Recruits:"), "razor clams above legal size for harvest."),
+                    h5(strong("Density-dependence:"), "slower population growth at large population sizes due to competition for space and food."),
+                    h5(strong("Survival:"), "the rate at which razor clams survive to the next year, avoiding both dying naturally and from harvest"),
+                    h5(strong("Harvest rate:"), "the amount of fishing pressure. For example, management aims to harvest 30% of legally-sized adult razor clams.")
+             ),
              column(6,img(src="razor_clam_pop_DD.png", align="left"))),
     tabPanel("Explore dynamics", 
              column(2, 
+                    h5("If the harvest rate increases, catch will be initially higher but then decrease as the population size cannot sustain that level of fishing pressure."),
+                    h5("If the harvest rate decreases, the population size will increase as it is not being fished as hard."),
                     sliderInput("u", "Harvest rate:", value=0.3, min=0, max=1, step=0.05),
+                    h5("If fishing is closed for one or many years, this gives the population some time to rebound, and the number of recruits and potential catch could be higher in the future."),
                     sliderInput("yct", "Fishing closed:", value=rep(0,2), min=0, max=20, step=1)),
-             column(10, plotOutput("CompareConstantHarvest"))),
+             column(8, plotOutput("CompareConstantHarvest"))),
     tabPanel("Learn about risks",
-             h4("Background information on the top four risks to the razor clam resource that the Quinault mentioned during interviews."),
+             h3("Background information: Top four perceived risks to the razor clam resource"),
              tabsetPanel(
+               tabPanel("Learning about risks", 
+                        h4(strong("Goal of this section:"),"Provide background information on biological mechanisms for each of the top four risks to the razor clam resource identified by Quinault Indian Nation tribal members."),
+                        h5("Based on key informant and group interviews with Quinault tribal members, the following four issues stood out to have the highest perceived risk to the razor clam population and harvest:"),
+                        h5("1. Harmful algal blooms"),
+                        h5("2. Storm surge and increasing wave height"),
+                        h5("3. Pollution and oil spills"),
+                        h5("4. Habitat destruction")),
                tabPanel("Harmful algal blooms", img(src="red_tide.png", align="center")),
                tabPanel("Storm surge", img(src="storm_surge.png", align="center")),
                tabPanel("Pollution", img(src="oil_spill.png", align="center")),
@@ -73,7 +104,15 @@ shinyUI(fluidPage(
                       sliderInput("capacity", "Beach capacity:", value=1, min=0,max=1,step=0.01)
                     )
              ),
-             column(8, plotOutput("ScenarioOutput")))
-  )  
+             column(8, plotOutput("ScenarioOutput"))),
+    tabPanel("Variation and uncertainty", 
+             column(2, h4("We can explore expected outcomes on harvest and the razor clam population associated with each perceived risk, but it is not guaranteed that these expected outcomes will occur.")),
+             column(2, 
+                    numericInput("simyears", "Number of years to project into future:", value=20, min=0),
+                    numericInput("nsims", "Number of simulations:", value=10, min=1),
+                    sliderInput("recvar", "Recruitment variability", value=0, min=0, max=2, step=0.01)),
+             column(8, plotOutput("SimulationOutput")))
+    )
+  )
   
-))  
+)
