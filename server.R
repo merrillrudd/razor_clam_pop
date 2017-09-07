@@ -14,6 +14,26 @@ library(png)
 shinyServer(function(input, output) {
 
 ################ FUNCTIONS ###############################
+### ----- introduction page - goals and approaches ---##
+  output$IntroTable <- renderImage({
+    list(src="www/goals_table.png", width=750, height=400)
+  }, deleteFile=FALSE)
+  
+  output$Glossary <- renderImage({
+    list(src="www/glossary.png", width=500, height=260)
+  }, deleteFile=FALSE)
+  
+  output$GlossarySmall <- renderImage({
+    list(src="www/glossary.png", width=270, height=140)
+  }, deleteFile=FALSE)
+  
+  output$IPOC <- renderImage({
+    list(src="www/ipoc.png", width=400, height=160)
+  }, deleteFile=FALSE)
+  
+  output$RazorClamPopDD <- renderImage({
+    list(src="www/razor_clam_pop_DD.png", width=750, height=480)
+  }, deleteFile=FALSE)
 ##### --------- Transition probabilities ------------  
 
 ## build transition matrix - fix values, but could add them to user interface in the future
@@ -50,10 +70,10 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
   return(lefko)
 }
 
-  # lefko1 <- create_lefko(capacity=capacity,dd=0,abund=0,S_eggs=0.0000556, S_prerecruits=0.11, S_recruits=0.75, u=0.3, fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+  # lefko1 <- create_lefko(capacity=capacity,dd=0,abund=0,S_eggs=2.865e-6, S_prerecruits=0.0888, S_recruits=0.45, u=0.3, fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
   # eigen(lefko1)
   # 
-  # lefko0 <- create_lefko(capacity=capacity,dd=0,abund=0,S_eggs=0.0000556, S_prerecruits=0.11, S_recruits=0.75, u=0, fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+  # lefko0 <- create_lefko(capacity=capacity,dd=0,abund=0,S_eggs=2.865e-6, S_prerecruits=0.0888, S_recruits=0.45, u=0, fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
   # eigen(lefko0)
 
 ##### --------- Project model ------------  
@@ -114,9 +134,12 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     dd <- -1.19
     capacity <- 1
     if(any(input$yct>0)) ut[input$yct[1]:input$yct[2]] <- 0
-    base <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
-    alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
-    close <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=rep(0,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+    
+  #  test <- project_fn(capacity=1, dd=-1.19,nyears=20, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
+    
+    base <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
+    alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
+    close <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=rep(0,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
     
     par(mfrow=c(2,2), mar=c(3,6,4,0), omi=c(0.2,0.2,0.2,1))
     plot(base[,"exploit"], ylim=c(0,1), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
@@ -132,16 +155,16 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     lines(relative(close[,"catch"], max(base[,"catch"])), lwd=4, col="blue")
     lines(relative(alt[,"catch"], max(base[,"catch"])), lwd=4, col="red", lty=2)
     axis(2, cex.axis=2, las=2, at=seq(0,3,by=1))
-    mtext(side=3, "Catch (relative)", font=2, cex=1.5, line=0.5)
+    mtext(side=3, "Catch", font=2, cex=1.5, line=0.5)
     mtext(side=2, "Relative catch", cex=1.5, line=2.5)
     mtext(side=1, "Year", cex=1.5, line=3)
     axis(1, cex.axis=2)
     
-    plot(relative(base[,"R"], max(base[,"R"])), ylim=c(0,2), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
+    plot(relative(base[,"R"], max(base[,"R"])), ylim=c(0,1.5), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
     lines(relative(close[,"R"], max(base[,"R"])), lwd=4, col="blue")
     lines(relative(alt[,"R"], max(base[,"R"])), lwd=4, col="red", lty=2)
     axis(2, cex.axis=2, las=2, at=seq(0,2,by=0.5))
-    mtext(side=3, "Recruits (relative)", font=2, cex=1.5, line=0.5)
+    mtext(side=3, "Recruits", font=2, cex=1.5, line=0.5)
     mtext(side=2, "Relative recruits", cex=1.5, line=4)
     mtext(side=1, "Year", cex=1.5, line=3)
     axis(1, cex.axis=2)
@@ -163,16 +186,16 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
      if(scenarios$dec_habitat==TRUE) capacity <- input$capacity
      if(scenarios$dec_habitat==FALSE) capacity <- 1
      
-     if(scenarios$inc_waves==TRUE | scenarios$pollution==TRUE) S_prerecruits <- seq(0.11, input$min_Spre, length=nyears)
-     if(scenarios$inc_waves==FALSE & scenarios$pollution==FALSE) S_prerecruits <- rep(0.11, nyears)
+     if(scenarios$inc_waves==TRUE | scenarios$pollution==TRUE) S_prerecruits <- seq(0.0888, input$min_Spre, length=nyears)
+     if(scenarios$inc_waves==FALSE & scenarios$pollution==FALSE) S_prerecruits <- rep(0.0888, nyears)
      
-     if(scenarios$pollution==TRUE) S_recruits <- seq(0.7, input$min_Srec, length=nyears)
-     if(scenarios$pollution==FALSE) S_recruits <- rep(0.7, nyears)
+     if(scenarios$pollution==TRUE) S_recruits <- seq(0.4, input$min_Srec, length=nyears)
+     if(scenarios$pollution==FALSE) S_recruits <- rep(0.4, nyears)
      
-     base <- project_fn(capacity=1, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
-     alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(0.0000556,nyears), S_prerecruits=S_prerecruits, S_recruits=S_recruits, fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+     base <- project_fn(capacity=1, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
+     alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(2.865e-6,nyears), S_prerecruits=S_prerecruits, S_recruits=S_recruits, fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
      
-     par(mfrow=c(2,3))
+     par(mfrow=c(2,3), mar=c(5,6,3,1))
      
      plot(base[,"exploit"], ylim=c(0,1), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
      if(length(which(scenarios==TRUE))>0) col <- "black"
@@ -180,7 +203,8 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
      if(length(which(scenarios==TRUE))>0) lines(alt[,"exploit"], col=col, lwd=4)
      axis(2, cex.axis=2, las=2, at=seq(0,1,by=0.5))
      mtext(side=1, "Year", line=3)
-     mtext(side=3, "Harvest rate", font=2, cex=1.5, line=-2)
+     mtext(side=3, "Harvest rate", font=2, cex=1.5, line=0.5)
+     mtext(side=2, "Harvest rate", cex=1.5, line=4)
      axis(1, cex.axis=2)
      
      plot(relative(base[,"catch"], max(base[,"catch"])), ylim=c(0,3), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
@@ -196,7 +220,8 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
 
      axis(2, cex.axis=2, las=2, at=seq(0,3,by=1))
      mtext(side=1, "Year", line=3)
-     mtext(side=3, "Catch", font=2, cex=1.5, line=-2)
+     mtext(side=3, "Catch", font=2, cex=1.5, line=0.5)
+     mtext(side=2, "Relative catch", cex=1.5, line=3)
      axis(1, cex.axis=2)
      
      plot(relative(base[,"R"], max(base[,"R"])), ylim=c(0,2), type="l", lwd=4, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
@@ -239,13 +264,14 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
      }
      axis(2, cex.axis=2, las=2, at=seq(0,2,by=0.5))
      mtext(side=1, "Year", line=3)
-     mtext(side=3, "Recruits", font=2, cex=1.5, line=-2)
+     mtext(side=3, "Recruits", font=2, cex=1.5, line=0.5)
+     mtext(side=2, "Relative recruits", cex=1.5, line=4)
      axis(1, cex.axis=2)
   
      
 
      if(scenarios$inc_waves==TRUE|scenarios$pollution==TRUE){
-        plot(rep(0.11,nyears), col="gray", lwd=4, xlim=c(1,nyears), ylim=c(0,0.2), xlab="", ylab="", type="l", xaxs="i", yaxs="i", xaxt="n", yaxt="n")
+        plot(rep(0.0888,nyears), col="gray", lwd=4, xlim=c(1,nyears), ylim=c(0,0.2), xlab="", ylab="", type="l", xaxs="i", yaxs="i", xaxt="n", yaxt="n")
         if(scenarios$inc_waves==TRUE & scenarios$pollution==FALSE){
           col <- colors[1]
           lty=1
@@ -263,16 +289,18 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
         }
         axis(2, cex.axis=2, las=2, at=seq(0,0.2,by=0.1))
         mtext(side=1, "Year", line=3)
-        mtext(side=3, "Pre-recruit survival", font=2, cex=1.5, line=-2)
+        mtext(side=3, "Pre-recruit survival", font=2, cex=1.5, line=0.5)
+        mtext(side=2, "Pre-recruit survival", cex=1.5, line=4)
         axis(1, cex.axis=2)
      }
      
      if(scenarios$pollution==TRUE){
-       plot(rep(0.7,nyears), col="gray", lwd=4, xlim=c(1,nyears), ylim=c(0,1), xlab="", ylab="", type="l", xaxs="i", yaxs="i", xaxt="n", yaxt="n")
+       plot(rep(0.4,nyears), col="gray", lwd=4, xlim=c(1,nyears), ylim=c(0,1), xlab="", ylab="", type="l", xaxs="i", yaxs="i", xaxt="n", yaxt="n")
        lines(S_recruits, lwd=4, col=colors[3])
        axis(2, cex.axis=2, las=2, at=seq(0,1,by=0.25))
        mtext(side=1, "Year", line=3)
-       mtext(side=3, "Recruit survival", font=2, cex=1.5, line=-2)
+       mtext(side=3, "Recruit survival", font=2, cex=1.5, line=0.5)
+       mtext(side=2, "Recruit survival", cex=1.5, line=4)
        axis(1, cex.axis=2)
      }
      
@@ -290,17 +318,17 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     if(scenarios$dec_habitat==TRUE) capacity <- input$capacity
     if(scenarios$dec_habitat==FALSE) capacity <- 1
     
-    if(scenarios$inc_waves==TRUE | scenarios$pollution==TRUE) S_prerecruits <- seq(0.11, input$min_Spre, length=nyears)
-    if(scenarios$inc_waves==FALSE & scenarios$pollution==FALSE) S_prerecruits <- rep(0.11, nyears)
+    if(scenarios$inc_waves==TRUE | scenarios$pollution==TRUE) S_prerecruits <- seq(0.0888, input$min_Spre, length=nyears)
+    if(scenarios$inc_waves==FALSE & scenarios$pollution==FALSE) S_prerecruits <- rep(0.0888, nyears)
     
-    if(scenarios$pollution==TRUE) S_recruits <- seq(0.7, input$min_Srec, length=nyears)
-    if(scenarios$pollution==FALSE) S_recruits <- rep(0.7, nyears)
+    if(scenarios$pollution==TRUE) S_recruits <- seq(0.4, input$min_Srec, length=nyears)
+    if(scenarios$pollution==FALSE) S_recruits <- rep(0.4, nyears)
     
-    base <- project_fn(capacity=1, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(0.0000556,nyears), S_prerecruits=rep(0.11,nyears), S_recruits=rep(0.7,nyears), fecundity=300000, plus_yrs=3, prop_spawners=0.5)
+    base <- project_fn(capacity=1, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
     alt <- list()
     set.seed(143)
     for(i in 1:input$nsims){
-      alt[[i]] <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(0.0000556,nyears), S_prerecruits=S_prerecruits, S_recruits=S_recruits, fecundity=300000, plus_yrs=3, prop_spawners=0.5, sigma=input$recvar)
+      alt[[i]] <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(2.865e-6,nyears), S_prerecruits=S_prerecruits, S_recruits=S_recruits, fecundity=8e6, plus_yrs=3, prop_spawners=0.5, sigma=input$recvar)
     }
     
     par(mfrow=c(2,3))
@@ -359,20 +387,29 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     mtext(side=3, "Recruits", font=2, cex=1.5, line=1)
     axis(1, cex.axis=2)
     
-    plot(x=1,y=1, type="n", axes=F, ann=F)
-    nzero <- rep(NA, length(alt))
-    for(i in 1:length(alt)){
-      nzero[i] <- length(which(alt[[i]][,"exploit"]==0))/nrow(alt[[i]])
-    }
-    avg_zero <- round(mean(nzero),2)
+    plot(x=1,y=1,type="n",ylim=c(0,5), axes=F, ann=F)
+    plot(x=1,y=1,type="n",ylim=c(0,5), axes=F, ann=F)
+    ## Number of years with closures due to management
+    close_management <- length(which(ut==0))
     
+    ## average number of years with closures due to low ##s of razor clams
+    close_pop <- rep(0, length(alt))
+    for(i in 1:length(alt)){
+      find_zero <- length(which(alt[[i]][,"exploit"]==0))
+      close_pop[i] <- find_zero - close_management
+    }
+    prop_close_pop <- length(which(close_pop > 0))
+    
+    ## average change in catch
     pcatch <- rep(NA, length(alt))
     for(i in 1:length(alt)){
       pcatch[i] <- 100*(sum(alt[[i]][,"catch"]) - sum(base[,"catch"]))/sum(base[,"catch"])
     }
+    
     avg_pcatch <- round(mean(pcatch),2)
-    mtext(side=3, paste0("Average proportion of years with no harvest: ", avg_zero), font=2, xpd=NA, line=-1)
-    mtext(side=3, paste0("Average percent change in catch: ", avg_pcatch,"%"), font=2, xpd=NA, line=-3)
+    mtext(side=3, paste0("Harvest closed due to management (e.g. HABs):\n", close_management, " out of ", input$simyears, " years"), font=2, xpd=NA, line=-1)
+    mtext(side=3, paste0("Number of simulated populations where harvest closed due to low population size:\n", prop_close_pop, " out of ", input$nsims, " simulations"), font=2, xpd=NA, line=-4)
+    mtext(side=3, paste0("Percent change in catch: ", ifelse(avg_pcatch>0, "+", "-"), abs(avg_pcatch),"%"), font=2, xpd=NA, line=-7)
     
   })
   
