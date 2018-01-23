@@ -14,26 +14,7 @@ library(png)
 shinyServer(function(input, output) {
 
 ################ FUNCTIONS ###############################
-### ----- introduction page - goals and approaches ---##
-  output$IntroTable <- renderImage({
-    list(src="www/goals_table.png", width=750, height=400)
-  }, deleteFile=FALSE)
-  
-  output$Glossary <- renderImage({
-    list(src="www/glossary.png", width=500, height=260)
-  }, deleteFile=FALSE)
-  
-  output$GlossarySmall <- renderImage({
-    list(src="www/glossary.png", width=270, height=140)
-  }, deleteFile=FALSE)
-  
-  output$IPOC <- renderImage({
-    list(src="www/ipoc.png", width=400, height=160)
-  }, deleteFile=FALSE)
-  
-  output$RazorClamPopDD <- renderImage({
-    list(src="www/razor_clam_pop_DD.png", width=750, height=480)
-  }, deleteFile=FALSE)
+
 ##### --------- Transition probabilities ------------  
 
 ## build transition matrix - fix values, but could add them to user interface in the future
@@ -55,7 +36,7 @@ build_transitions <- function(PP=0.05, PR=1-PP, RR=1){
 ##### --------- Lefkovitch matrix ------------  
 
 ## create lefkovitch matrix based on inputs
-create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_yrs, prop_spawners, dd, abund, capacity, dev){
+create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_yrs, prop_spawners, dev){
   stages <- c("P", "R")
   lefko <- matrix(0, nrow=length(stages), ncol=length(stages))
   rownames(lefko) <- colnames(lefko) <- stages
@@ -64,14 +45,14 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
   
   lefko["R","P"] <- tmat["R","P"] * S_prerecruits
   lefko["P","P"] <- tmat["P","P"] * S_prerecruits
-  lefko["R","R"] <- tmat["R","R"] * ((S_recruits*(1-u))^(plus_yrs-1))/(1-S_recruits*(1-u)) * exp(dd*abund/capacity)
+  lefko["R","R"] <- (tmat["R","R"] * ((S_recruits*(1-u))^(plus_yrs-1))/(1-S_recruits*(1-u)))
   lefko["P","R"] <- prop_spawners * fecundity * S_eggs * exp(dev)
-  
+
   return(lefko)
 }
 
-  # lefko1 <- create_lefko(capacity=capacity,dd=0,abund=0,S_eggs=2.865e-6, S_prerecruits=0.0888, S_recruits=0.45, u=0.3, fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
-  # eigen(lefko1)
+  lefko1 <- create_lefko(S_eggs=2.865e-6, S_prerecruits=0.0888, S_recruits=0.45, u=0.3, fecundity=8e6, plus_yrs=3, prop_spawners=0.5,dev=0)
+  eigen(lefko1)
   # 
   # lefko0 <- create_lefko(capacity=capacity,dd=0,abund=0,S_eggs=2.865e-6, S_prerecruits=0.0888, S_recruits=0.45, u=0, fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
   # eigen(lefko0)
@@ -84,22 +65,38 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     pmat <- matrix(NA, nrow=nyears, ncol=5)
     colnames(pmat) <- c(stages, "lambda", "catch", "exploit")
     
-    lefko0 <- create_lefko(capacity=capacity,dd=dd,abund=1,S_eggs=S_eggs[1], S_prerecruits=S_prerecruits[1], S_recruits=S_recruits[1], u=0, fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners, dev=0)
+    lefko0 <- create_lefko(S_eggs=S_eggs[1], S_prerecruits=S_prerecruits[1], S_recruits=S_recruits[1], u=0, fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners, dev=0)
     e0 <- eigen(lefko0)
     unfishedR <- abs(e0$vectors[,1])[2]
     
-    lefko1 <- create_lefko(capacity=capacity,dd=dd,abund=1,S_eggs=S_eggs[1], S_prerecruits=S_prerecruits[1], S_recruits=S_recruits[1], u=u_t[1], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners, dev=(rnorm(1,0,sigma)-(sigma^2)/2))
+    lefko1 <- create_lefko(S_eggs=S_eggs[1], S_prerecruits=S_prerecruits[1], S_recruits=S_recruits[1], u=u_t[1], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners, dev=rnorm(1, mean=-(sigma^2)/2, sd=sigma))
     e1 <- eigen(lefko1)
-    pmat[1,stages] <- abs(e1$vectors[,1])
-    pmat[1,"lambda"] <- e1$value[1]
+    
+    pop <- abs(e1$vectors[,1])
+    
+    qmat <- c(capacity[1], capacity[1] + dd*sum(pop))
+    
+    pop_new <- lefko1*qmat
+    e2 <- eigen(pop_new)
+    
+    pmat[1,stages] <- abs(e2$vectors[,1])
+    pmat[1,"lambda"] <- e2$value[1]
     pmat[1,"catch"] <- pmat[1,"R"]*u_t[1]
     pmat[1,"exploit"] <- u_t[1]
     
     for(i in 2:nyears){ 
     
-      lefko <- create_lefko(capacity=capacity,dd=dd,abund=sum(pmat[i-1,c("P","R")]),S_eggs=S_eggs[i], S_prerecruits=S_prerecruits[i], S_recruits=S_recruits[i], u=u_t[i], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners, dev=(rnorm(1,0,sigma)-(sigma^2)/2))
+      lefko <- create_lefko(S_eggs=S_eggs[i], S_prerecruits=S_prerecruits[i], S_recruits=S_recruits[i], u=u_t[i], fecundity=fecundity, plus_yrs=plus_yrs, prop_spawners=prop_spawners, dev=rnorm(1, mean=-(sigma^2)/2, sd=sigma))
+      eig <- eigen(lefko)
       
-      pmat[i,stages] <- pmat[(i-1),stages] %*% t(lefko)
+      pop <- abs(eig$vectors[,1])
+      
+      qmat <- c(capacity[i], capacity[i] + dd*sum(pmat[(i-1),stages]))
+      
+      pop_new <- lefko*qmat
+      eig2 <- eigen(pop_new)
+      
+      pmat[i,stages] <- pmat[(i-1),stages] %*% t(pop_new)
       pmat[i,"lambda"] <- sum(pmat[i,stages])/sum(pmat[(i-1),stages])
       if(pmat[i,"R"]<unfishedR*0.1) u_t[i] <- 0
       pmat[i,"exploit"] <- u_t[i]
@@ -119,20 +116,11 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     return(x2)
   }
   
-  output$PopFlowchart <- renderPlot({
-    if(input$u==0.3) ima <- readPNG(file.path("www", "equil_recruits_flow.png"))
-    if(input$u<0.3) ima <- readPNG(file.path("www", "fewer_recruits_flow.png"))
-    if(input$u>0.3) ima <- readPNG(file.path("www", "more_recruits_flow.png"))
-    plot(x=1,y=1,type="n",axes=F,ann=F)
-    lim <- par()
-    rasterImage(ima, lim$usr[1], lim$usr[3], lim$usr[2], lim$usr[4])
-  })
-  
   output$CompareConstantHarvest <- renderPlot({
     nyears <- 20
     ut <- rep(input$u, nyears)
-    dd <- -1.19
-    capacity <- 1
+    dd <- -0.07
+    capacity <- rep(1,nyears)
     if(any(input$yct>0)) ut[input$yct[1]:input$yct[2]] <- 0
     
   #  test <- project_fn(capacity=1, dd=-1.19,nyears=20, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
@@ -160,17 +148,17 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     mtext(side=1, "Year", cex=1.5, line=3)
     axis(1, cex.axis=2)
     
-    plot(relative(base[,"R"], max(base[,"R"])), ylim=c(0,1.5), type="l", lwd=6, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
+    plot(relative(base[,"R"], max(base[,"R"])), ylim=c(0,3), type="l", lwd=6, xaxt="n", yaxt="n", xaxs="i", yaxs="i", xpd=NA, xlab="", ylab="", col="gray")
     lines(relative(close[,"R"], max(base[,"R"])), lwd=6, col="cyan4")
     lines(relative(alt[,"R"], max(base[,"R"])), lwd=6, col="orangered2", lty=2)
-    axis(2, cex.axis=2, las=2, at=seq(0,2,by=0.5))
+    axis(2, cex.axis=2, las=2, at=seq(0,3,by=0.5))
     mtext(side=3, "Recruits", font=2, cex=1.5, line=0.5)
     mtext(side=2, "Relative recruits", cex=1.5, line=4)
     mtext(side=1, "Year", cex=1.5, line=3)
     axis(1, cex.axis=2)
     
     plot(x=1,y=1,type="n",axes=F,ann=F)
-    legend("topleft", xpd=NA, cex=2, lwd=6, box.lwd=0, box.col="white", lty=c(1,2,1), legend=c("Equilibrium status quo", "With fishing", "No fishing (constant, for comparison)"), col=c("gray", "orangered2", "cyan4"))
+    legend("topleft", xpd=NA, cex=2, lwd=6, box.lwd=0, box.col="white", lty=c(1,2,1), legend=c("Equilibrium status quo", "With fishing", "Stop fishing today (for comparison)"), col=c("gray", "orangered2", "cyan4"))
     
     
   }, height=800, width=1200)
@@ -182,9 +170,9 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
      ut <- rep(input$u2, nyears)
      if(scenarios$HABs==TRUE) ut[seq(from=input$hab_freq,by=input$hab_freq,to=nyears)] <- 0
      
-     dd <- -1.19
-     if(scenarios$dec_habitat==TRUE) capacity <- input$capacity
-     if(scenarios$dec_habitat==FALSE) capacity <- 1
+     dd <- -0.07
+     if(scenarios$dec_habitat==TRUE) capacity <- seq(1,input$capacity,length=nyears)
+     if(scenarios$dec_habitat==FALSE) capacity <- rep(1, nyears)
      
      if(scenarios$inc_waves==TRUE | scenarios$pollution==TRUE) S_prerecruits <- seq(0.0888, input$min_Spre, length=nyears)
      if(scenarios$inc_waves==FALSE & scenarios$pollution==FALSE) S_prerecruits <- rep(0.0888, nyears)
@@ -192,7 +180,7 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
      if(scenarios$pollution==TRUE) S_recruits <- seq(0.4, input$min_Srec, length=nyears)
      if(scenarios$pollution==FALSE) S_recruits <- rep(0.4, nyears)
      
-     base <- project_fn(capacity=1, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
+     base <- project_fn(capacity=rep(1,nyears), dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
      alt <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(2.865e-6,nyears), S_prerecruits=S_prerecruits, S_recruits=S_recruits, fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
      
      par(mfrow=c(3,3), mar=c(5,6,3,1))
@@ -314,9 +302,9 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     ut <- rep(input$u2, nyears)
     if(scenarios$HABs==TRUE) ut[seq(from=input$hab_freq,by=input$hab_freq,to=nyears)] <- 0
     
-    dd <- -1.19
-    if(scenarios$dec_habitat==TRUE) capacity <- input$capacity
-    if(scenarios$dec_habitat==FALSE) capacity <- 1
+    dd <- -0.07
+    if(scenarios$dec_habitat==TRUE) capacity <- seq(1,input$capacity,length=nyears)
+    if(scenarios$dec_habitat==FALSE) capacity <- rep(1,nyears)
     
     if(scenarios$inc_waves==TRUE | scenarios$pollution==TRUE) S_prerecruits <- seq(0.0888, input$min_Spre, length=nyears)
     if(scenarios$inc_waves==FALSE & scenarios$pollution==FALSE) S_prerecruits <- rep(0.0888, nyears)
@@ -324,7 +312,7 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
     if(scenarios$pollution==TRUE) S_recruits <- seq(0.4, input$min_Srec, length=nyears)
     if(scenarios$pollution==FALSE) S_recruits <- rep(0.4, nyears)
     
-    base <- project_fn(capacity=1, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
+    base <- project_fn(capacity=rep(1,nyears), dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
     alt_det <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(2.865e-6,nyears), S_prerecruits=S_prerecruits, S_recruits=S_recruits, fecundity=8e6, plus_yrs=3, prop_spawners=0.5)
     
     alt <- base_var <- list()
@@ -333,7 +321,7 @@ create_lefko <- function(S_eggs, S_prerecruits, S_recruits, u, fecundity, plus_y
       alt[[i]] <- project_fn(capacity=capacity, dd=dd,nyears=nyears, u_t=ut, S_eggs=rep(2.865e-6,nyears), S_prerecruits=S_prerecruits, S_recruits=S_recruits, fecundity=8e6, plus_yrs=3, prop_spawners=0.5, sigma=input$recvar)
       
       set.seed(i*100)
-      base_var[[i]] <- project_fn(capacity=1, dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5, sigma=input$recvar)    
+      base_var[[i]] <- project_fn(capacity=rep(1,nyears), dd=dd,nyears=nyears, u_t=rep(0.3,nyears), S_eggs=rep(2.865e-6,nyears), S_prerecruits=rep(0.0888,nyears), S_recruits=rep(0.4,nyears), fecundity=8e6, plus_yrs=3, prop_spawners=0.5, sigma=input$recvar)    
     }
     
     par(mfrow=c(3,3), mar=c(5,6,3,1))

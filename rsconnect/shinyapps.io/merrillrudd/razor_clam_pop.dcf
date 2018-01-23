@@ -1,0 +1,13 @@
+name: razor_clam_pop
+title: razor_clam_pop
+username:
+account: merrillrudd
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 212337
+bundleId: 977229
+url: https://merrillrudd.shinyapps.io/razor_clam_pop/
+when: 1505162607.60649
+asMultiple: FALSE
+asStatic: FALSE
+ignoredFiles: www/conceptual_model_abbrev.png|www/conceptual_model_abbrev.pptx|www/population_flowcharts.pptx|www/razor_clam_pop.R|www/Risks_figure.png
